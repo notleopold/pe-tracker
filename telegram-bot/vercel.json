@@ -1,4 +1,5 @@
 {
+  "public": true,
   "functions": {
     "api/notify.ts": { "maxDuration": 30 },
     "api/digest.ts": { "maxDuration": 30 }
