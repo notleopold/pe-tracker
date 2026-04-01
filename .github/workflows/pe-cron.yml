@@ -1,0 +1,51 @@
+name: PE Tracker — Telegram Alerts
+
+on:
+  schedule:
+    # Real-time alerts: every hour at minute 0
+    - cron: '0 * * * *'
+    # Daily digest: every day at 7:00 UTC (9:00 Paris time)
+    - cron: '0 7 * * *'
+  # Allow manual trigger from GitHub Actions tab
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Which action to run'
+        required: true
+        default: 'notify'
+        type: choice
+        options:
+          - notify
+          - digest
+          - both
+
+jobs:
+  notify:
+    name: Send new articles
+    runs-on: ubuntu-latest
+    # Run on the hourly schedule, or manual trigger with notify/both
+    if: |
+      github.event_name == 'workflow_dispatch' && (github.event.inputs.action == 'notify' || github.event.inputs.action == 'both') ||
+      github.event.schedule == '0 * * * *'
+    steps:
+      - name: Call notify endpoint
+        run: |
+          curl -s -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.BOT_URL }}/api/notify" | tee /tmp/notify-result.json
+          cat /tmp/notify-result.json
+
+  digest:
+    name: Send daily digest
+    runs-on: ubuntu-latest
+    # Run on the daily schedule, or manual trigger with digest/both
+    if: |
+      github.event_name == 'workflow_dispatch' && (github.event.inputs.action == 'digest' || github.event.inputs.action == 'both') ||
+      github.event.schedule == '0 7 * * *'
+    steps:
+      - name: Call digest endpoint
+        run: |
+          curl -s -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.BOT_URL }}/api/digest" | tee /tmp/digest-result.json
+          cat /tmp/digest-result.json
